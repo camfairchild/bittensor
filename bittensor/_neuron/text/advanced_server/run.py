@@ -98,48 +98,48 @@ def serve(
     # -- Main Training loop --
     try:
         interation = 0
+        with bittensor.__console__.status('Training...') as status:
+            while True:
+                # -- download files from the mountain
+                data = next(dataset)
 
-        while True:
-            # -- download files from the mountain
-            data = next(dataset)
-
-            # --- Training step.
-            loss, _ = gp_server(data.to('cuda'))
-            
-            if interation != 0:
-                losses += loss
-            else:
-                losses = loss
-            
-            interation += 1
-
-            if interation == 10 or gp_server.backward_gradients != 0: # only update the model every 10 iterations
-                interation_ = interation
-                with mutex:
-                    logger.info('Backpropagation Started')
-                    if interation != 0 or gp_server.backward_gradients != 0:
-                        losses.backward()
-                        interation = 0
-                    clip_grad_norm_(gp_server.parameters(), 1.0)
+                # --- Training step.
+                loss, _ = gp_server(data.to('cuda'))
+                
+                if interation != 0:
+                    losses += loss
+                else:
+                    losses = loss
+                
+                interation += 1
+                status.update(f"training {interation1}/10")
+                if interation == 10 or gp_server.backward_gradients != 0: # only update the model every 10 iterations
+                    interation_ = interation
+                    with mutex:
+                        logger.info('Backpropagation Started')
+                        if interation != 0 or gp_server.backward_gradients != 0:
+                            losses.backward()
+                            interation = 0
+                        clip_grad_norm_(gp_server.parameters(), 1.0)
+                        
+                        optimizer.step()
+                        lr_scheduler.step()
+                        optimizer.zero_grad()
+                        logger.info('Backpropagation Successful: Model updated')
                     
-                    optimizer.step()
-                    lr_scheduler.step()
-                    optimizer.zero_grad()
-                    logger.info('Backpropagation Successful: Model updated')
-                
-                wandb_data = {
-                    'loss': losses.cpu().item()/interation_ if interation_ != 0 else losses.cpu().item(),
-                    "lr": optimizer.param_groups[0]['lr'],
-                }                 
+                    wandb_data = {
+                        'loss': losses.cpu().item()/interation_ if interation_ != 0 else losses.cpu().item(),
+                        "lr": optimizer.param_groups[0]['lr'],
+                    }                 
 
-                bittensor.__console__.print('[green]Current Status:[/green]', wandb_data)
+                    bittensor.__console__.print('[green]Current Status:[/green]', wandb_data)
 
-                # Log losses to wandb.
-                if config.wandb.api_key != 'default':
-                    wandb.log( { **wandb_data } )
-                
-                # Save the model
-                gp_server.save(config.neuron.full_path)
+                    # Log losses to wandb.
+                    if config.wandb.api_key != 'default':
+                        wandb.log( { **wandb_data } )
+                    
+                    # Save the model
+                    gp_server.save(config.neuron.full_path)
             
 
 
