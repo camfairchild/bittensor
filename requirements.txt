@@ -26,7 +26,7 @@ retry
 requests>=2.25.0
 scalecodec>=1.0.3
 termcolor
-torch==1.10
+torch==1.10+cu111 -f https://download.pytorch.org/whl/torch_stable.html
 transformers>=4.5.0
 numpy
 wheel
@@ -36,3 +36,4 @@ qqdm
 wandb>=0.11.1
 ansible_vault>=2.1
 substrate-interface==1.0.2
+sentencepiece
