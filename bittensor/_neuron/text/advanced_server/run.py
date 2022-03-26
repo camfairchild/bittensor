@@ -112,7 +112,7 @@ def serve(
                     losses = loss
                 
                 interation += 1
-                status.update(f"training {interation1}/10")
+                status.update(f"training {interation}/10")
                 if interation == 10: # only update the model every 10 iterations
                     interation_ = interation
                     with mutex:
