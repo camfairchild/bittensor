@@ -118,7 +118,7 @@ def serve(
                 with mutex:
                     logger.info('Backpropagation Started')
                     if interation != 0:
-                        losses.sum().backward()
+                        losses.mean().backward()
                         interation = 0
                     clip_grad_norm_(gp_server.parameters(), 1.0)
                     
@@ -128,7 +128,7 @@ def serve(
                     logger.info('Backpropagation Successful: Model updated')
                 
                 wandb_data = {
-                    'loss': losses.sum().cpu().item()/interation_ if interation_ != 0 else losses.sum().cpu().item(),
+                    'loss': losses.mean().cpu().item()/interation_ if interation_ != 0 else losses.mean().cpu().item(),
                     "lr": optimizer.param_groups[0]['lr'],
                 }                 
 
