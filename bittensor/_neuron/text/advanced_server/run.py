@@ -80,7 +80,7 @@ def serve(
         [ {"params": gp_server.parameters()} ],
         lr = 5e-6, # recommended
     )
-    num_training_steps = 11390//10 # the number of epochs estimated for myself
+    num_training_steps = 11390//5 # the number of epochs estimated for myself
     num_warmup_steps = int(0.05 * num_training_steps) # 5% of the number of steps
     lr_scheduler = get_scheduler(
         name="linear", optimizer=optimizer, num_warmup_steps=num_warmup_steps, num_training_steps=num_training_steps
@@ -112,8 +112,8 @@ def serve(
                     losses = loss
                 
                 interation += 1
-                status.update(f"training {interation}/10")
-                if interation == 10: # only update the model every 10 iterations
+                status.update(f"training {interation}/5")
+                if interation == 5: # only update the model every 5 iterations
                     interation_ = interation
                     with mutex:
                         logger.info('Backpropagation Started')
