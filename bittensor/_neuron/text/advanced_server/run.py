@@ -139,7 +139,7 @@ def serve(
                         wandb.log( { **wandb_data } )
                     
                     # Save the model
-                    torch.save(gp_server.state_dict(), config.neuron.full_path)
+                    torch.save(gp_server.state_dict(), config.neuron.full_path + '/model.torch')
             
 
 
