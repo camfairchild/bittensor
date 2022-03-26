@@ -113,11 +113,11 @@ def serve(
                 
                 interation += 1
                 status.update(f"training {interation1}/10")
-                if interation == 10 or gp_server.backward_gradients != 0: # only update the model every 10 iterations
+                if interation == 10: # only update the model every 10 iterations
                     interation_ = interation
                     with mutex:
                         logger.info('Backpropagation Started')
-                        if interation != 0 or gp_server.backward_gradients != 0:
+                        if interation != 0:
                             losses.backward()
                             interation = 0
                         clip_grad_norm_(gp_server.parameters(), 1.0)
