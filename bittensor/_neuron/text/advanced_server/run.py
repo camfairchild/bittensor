@@ -118,7 +118,7 @@ def serve(
                     with mutex:
                         logger.info('Backpropagation Started')
                         if interation != 0:
-                            losses.backward()
+                            losses.sum().backward()
                             interation = 0
                         clip_grad_norm_(gp_server.parameters(), 1.0)
                         
