@@ -128,7 +128,7 @@ def serve(
                         logger.info('Backpropagation Successful: Model updated')
                     
                     wandb_data = {
-                        'loss': losses.cpu().item()/interation_ if interation_ != 0 else losses.cpu().item(),
+                        'loss': losses.sum().cpu().item()/interation_ if interation_ != 0 else losses.sum().cpu().item(),
                         "lr": optimizer.param_groups[0]['lr'],
                     }                 
 
