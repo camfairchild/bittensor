@@ -112,34 +112,34 @@ def serve(
                     losses = loss
                 
                 interation += 1
-                status.update(f"training {interation}/5")
-                if interation == 5: # only update the model every 5 iterations
-                    interation_ = interation
-                    with mutex:
-                        logger.info('Backpropagation Started')
-                        if interation != 0:
-                            losses.sum().backward()
-                            interation = 0
-                        clip_grad_norm_(gp_server.parameters(), 1.0)
-                        
-                        optimizer.step()
-                        lr_scheduler.step()
-                        optimizer.zero_grad()
-                        logger.info('Backpropagation Successful: Model updated')
+                status.update(f"training {interation}")
+                #if interation == 1: # update the model every 1 iterations
+                interation_ = interation
+                with mutex:
+                    logger.info('Backpropagation Started')
+                    if interation != 0:
+                        losses.sum().backward()
+                        interation = 0
+                    clip_grad_norm_(gp_server.parameters(), 1.0)
                     
-                    wandb_data = {
-                        'loss': losses.sum().cpu().item()/interation_ if interation_ != 0 else losses.sum().cpu().item(),
-                        "lr": optimizer.param_groups[0]['lr'],
-                    }                 
+                    optimizer.step()
+                    lr_scheduler.step()
+                    optimizer.zero_grad()
+                    logger.info('Backpropagation Successful: Model updated')
+                
+                wandb_data = {
+                    'loss': losses.sum().cpu().item()/interation_ if interation_ != 0 else losses.sum().cpu().item(),
+                    "lr": optimizer.param_groups[0]['lr'],
+                }                 
 
-                    bittensor.__console__.print('[green]Current Status:[/green]', wandb_data)
+                bittensor.__console__.print('[green]Current Status:[/green]', wandb_data)
 
-                    # Log losses to wandb.
-                    if config.wandb.api_key != 'default':
-                        wandb.log( { **wandb_data } )
-                    
-                    # Save the model
-                    torch.save(gp_server.state_dict(), config.neuron.full_path + '/model.torch')
+                # Log losses to wandb.
+                if config.wandb.api_key != 'default':
+                    wandb.log( { **wandb_data } )
+                
+                # Save the model
+                torch.save(gp_server.state_dict(), config.neuron.full_path + '/model.torch')
             
 
 
