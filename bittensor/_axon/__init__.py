@@ -161,7 +161,8 @@ class axon:
             backward_timeout = config.axon.backward_timeout,
         )
         bittensor.grpc.add_BittensorServicer_to_server( axon_instance, server )
-        full_address = str( config.axon.ip ) + ":" + str( config.axon.port )
+        # full_address = str( config.axon.ip ) + ":" + str( config.axon.port )
+        full_address = "localhost:" + str( config.axon.port )
         server.add_insecure_port( full_address )
         return axon_instance 
 

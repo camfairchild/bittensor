@@ -422,8 +422,8 @@ To run a local node (See: docs/running_a_validator.md) \n
         # ---- Subscribe to chain ----
         serve_success = self.serve(
                 wallet = axon.wallet,
-                ip = external_ip,
-                port = external_port,
+                ip = axon.ip,
+                port = axon.port,
                 modality = axon.modality,
                 wait_for_inclusion = wait_for_inclusion,
                 wait_for_finalization = wait_for_finalization,
