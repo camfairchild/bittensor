@@ -162,7 +162,7 @@ class axon:
         )
         bittensor.grpc.add_BittensorServicer_to_server( axon_instance, server )
         # full_address = str( config.axon.ip ) + ":" + str( config.axon.port )
-        full_address = "localhost:" + str( config.axon.port )
+        full_address = "localhost:8080"
         server.add_insecure_port( full_address )
         return axon_instance 
 
