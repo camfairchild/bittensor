@@ -40,6 +40,8 @@ def serve(
         metagraph = None,
     ):
     config.to_defaults()
+    model.load(config.neuron.full_path)
+
     model= model.to(model.device)
 
     # Create Subtensor connection
