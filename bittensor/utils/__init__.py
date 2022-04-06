@@ -138,8 +138,8 @@ def solve_for_difficulty_fast( subtensor, wallet, num_processes: int = None, upd
     status = console.status("Solving")
 
     found_solution = multiprocessing.Value('q', -1, lock=False) # int
-    best = multiprocessing.Value(ctypes.c_char_p, lock=True) # byte array to get around int size of ctypes
-    best.raw = struct.pack("d", float('inf'))
+    best_raw = struct.pack("d", float('inf'))
+    best = multiprocessing.Array(ctypes.c_char, best_raw, lock=True)
     best_seal = multiprocessing.Array('h', 32, lock=True) # short array should hold bytes (0, 256)
     
     with multiprocessing.Pool(processes=num_processes, initializer=initProcess_, initargs=(solve_, found_solution, best, best_seal)) as pool:
