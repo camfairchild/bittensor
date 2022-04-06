@@ -4,12 +4,17 @@ import ctypes
 import struct
 import hashlib
 import math
+
+from .register_cuda import solve_cuda, reset_cuda
+from rich.prompt import Confirm
+
 import bittensor
 import rich
 import time
 import torch
 import numbers
 import pandas
+import datetime
 from typing import Any, Tuple, List, Union, Optional
 
 
@@ -200,23 +205,102 @@ def solve_(nonce_start, nonce_end, block_bytes, difficulty, block_hash, block_nu
             solve_.found.value = nonce
             return (nonce, block_number, block_hash, difficulty, seal)
 
-        if (product - limit) < best_local: 
-            best_local = product - limit
-            best_seal_local = seal
-
-    with solve_.best.get_lock():
-        best_value_as_d = struct.unpack('d', solve_.best.raw)[0]
-        
-        if best_local < best_value_as_d:    
-            with solve_.best_seal.get_lock():
-                solve_.best.raw = struct.pack('d', best_local)
-                for i in range(32):
-                    solve_.best_seal[i] = best_seal_local[i]
-
     return None
 
-def create_pow( subtensor, wallet ):
-    nonce, block_number, block_hash, difficulty, seal = solve_for_difficulty_fast( subtensor, wallet )
+def get_human_readable(num, suffix="H"):
+    for unit in ["", "K", "M", "G", "T", "P", "E", "Z"]:
+        if abs(num) < 1000.0:
+            return f"{num:3.1f}{unit}{suffix}"
+        num /= 1000.0
+    return f"{num:.1f}Y{suffix}"
+
+def millify(n: int):
+    millnames = ['',' K',' M',' B',' T']
+    n = float(n)
+    millidx = max(0,min(len(millnames)-1,
+                        int(math.floor(0 if n == 0 else math.log10(abs(n))/3))))
+
+    return '{:.0f}{}'.format(n / 10**(3 * millidx), millnames[millidx])
+
+
+def solve_for_difficulty_fast_cuda( subtensor, wallet, update_interval: int = 100000, TPB: int = 1024 ) -> Tuple[int, int, Any, int, Any]:
+    if not torch.cuda.is_available():
+        raise Exception("CUDA not available")
+        
+    block_number = subtensor.get_current_block()
+    difficulty = subtensor.difficulty
+    block_hash = subtensor.substrate.get_block_hash( block_number )
+    while block_hash == None:
+        block_hash = subtensor.substrate.get_block_hash( block_number )
+    block_bytes = block_hash.encode('utf-8')[2:]
+    
+    nonce = 0
+    limit = int(math.pow(2,256)) - 1
+    start_time = time.time()
+
+    console = bittensor.__console__
+    status = console.status("Solving")
+    
+
+    solution = -1
+    start_time = time.time()
+    interval_time = start_time
+
+    status.start()
+    while solution == -1 and not wallet.is_registered(subtensor):
+        solution, seal = solve_cuda(nonce,
+                        update_interval,
+                        TPB,
+                        block_bytes, 
+                        difficulty, 
+                        limit)
+
+        if (solution != -1):
+            # Attempt to reset CUDA device
+            reset_cuda()
+            status.stop()
+            new_bn = subtensor.get_current_block()
+            print(f"Found solution for bn: {block_number}; Newest: {new_bn}")            
+            return solution, block_number, block_hash, difficulty, seal
+
+        nonce += update_interval*TPB
+        if (nonce >= int(math.pow(2,63))):
+            nonce = 0
+        itrs_per_sec = update_interval*TPB / (time.time() - interval_time)
+        interval_time = time.time()
+        difficulty = subtensor.difficulty
+        block_number = subtensor.get_current_block()
+        block_hash = subtensor.substrate.get_block_hash( block_number)
+        while block_hash == None:
+            block_hash = subtensor.substrate.get_block_hash( block_number)
+        block_bytes = block_hash.encode('utf-8')[2:]
+
+        message = f"""Solving 
+            time spent: {datetime.timedelta(seconds=time.time() - start_time)}
+            Nonce: [bold white]{nonce}[/bold white]
+            Difficulty: [bold white]{millify(difficulty)}[/bold white]
+            Iters: [bold white]{get_human_readable(int(itrs_per_sec), "H")}/s[/bold white]
+            Block: [bold white]{block_number}[/bold white]
+            Block_hash: [bold white]{block_hash.encode('utf-8')}[/bold white]"""
+        status.update(message.replace(" ", ""))
+        
+    # exited while, found_solution contains the nonce or wallet is registered
+    if solution == -1: # didn't find solution
+        reset_cuda()
+        status.stop()
+        return None, None, None, None, None
+    
+    else:
+        reset_cuda()
+        # Shouldn't get here
+        status.stop()
+        return None, None, None, None, None
+
+def create_pow( subtensor, wallet, cuda: bool = False ):
+    if cuda:
+        nonce, block_number, block_hash, difficulty, seal = solve_for_difficulty_fast_cuda( subtensor, wallet )
+    else:
+        nonce, block_number, block_hash, difficulty, seal = solve_for_difficulty_fast( subtensor, wallet )
     return None if nonce is None else {
         'nonce': nonce, 
         'difficulty': difficulty,
